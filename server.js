@@ -82,15 +82,15 @@ const askUser = () => {
       if (answer.options == "Add a department") {
         addDepartment();
       }
-      // if (answer.options == "Add a role") {
-      //   addRole();
-      // }
-      // if (answer.options == "Add an employee") {
-      //   addEmployee();
-      // }
-      // if (answer.options == "Update an employee role") {
-      //   updateEmployee();
-      // }
+      if (answer.options == "Add a role") {
+        addRole();
+      }
+      if (answer.options == "Add an employee") {
+        addEmployee();
+      }
+      if (answer.options == "Update an employee role") {
+        updateEmployee();
+      }
       if (answer.options == "Exit the app") {
         exitApp();
       }
@@ -166,13 +166,11 @@ function addDepartment() {
           }
           console.log(`added ${answer.newDepartment} to department list!`);
           viewDepartments();
-          askUser();
         }
       );
     });
 }
 
-//HOW TO GET DEPARTMENT ID FROM ENTERED DEPARTMENT???
 function addRole() {
   inquirer
     .prompt([
@@ -186,32 +184,41 @@ function addRole() {
         name: "salary",
         message: "Please enter the yearly salary for the role:",
       },
-      {
-        type: "checkbox",
-        name: "roleDepartment",
-        message: "Please select the department that the new role belongs to:",
-        choices: [
-          "Accounts and Finance",
-          "Sales and Marketing",
-          "Product Development",
-          "HR",
-          "Legal",
-        ],
-      },
     ])
     .then((answers) => {
-      db.query(
-        `INSERT into role (title, salary, department_id) VALUES (?, ?)`,
-        answers.roleName,
-        answers.salary,
-        (err, result) => {
-          if (err) {
-            console.log(err);
-          }
-          console.log(`added ${answers.roleName} to database!`);
-          askUser();
+      const newRole = [answers.roleName, answers.salary];
+      db.query(`SELECT name, id FROM department`, (err, result) => {
+        if (err) {
+          console.log(err);
         }
-      );
+        const department = result.map(({ name, id }) => ({
+          name: name,
+          value: id,
+        }));
+        inquirer
+          .prompt([
+            {
+              type: "checkbox",
+              name: "roleDept",
+              message: "What department does the new role belong in?",
+              choices: department,
+            },
+          ])
+          .then((answer) => {
+            newRole.push(answer.roleDept);
+            db.query(
+              `INSERT into role (title, salary, department_id) VALUES (?, ?, ?)`,
+              newRole,
+              (err, result) => {
+                if (err) {
+                  console.log(err);
+                }
+                console.log("Successfully added role!");
+                viewRoles();
+              }
+            );
+          });
+      });
     });
 }
 
@@ -228,51 +235,123 @@ function addEmployee() {
         name: "lastName",
         message: "Please enter the surname of the new employee:",
       },
-      {
-        type: "checkbox",
-        name: "employeeRole",
-        message: "Please select the role of the new employee:",
-        choices: [
-          "Accounts Manager",
-          "Accountant",
-          "Sales Executive",
-          "Sales Intern",
-          "Lead Engineer",
-          "Software Engineer",
-          "Software Intern",
-          "HR Manager",
-          "Legal Lead",
-          "Lawyer",
-        ],
-      },
     ])
-    .then((answers) =>
-      db.query(
-        "INSERT into employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)",
-        JSON.stringify(answers.firstName),
-        JSON.stringify(answers.lastName),
-        (err, result) => {
-          if (err) {
-            console.log(err);
-          }
-          console.log(
-            `added ${JSON.stringify(
-              answers.firstName,
-              answers.lastName
-            )} to database!`
-          );
-          askUser();
+    .then((answers) => {
+      const newEmployee = [answers.firstName, answers.lastName];
+      db.query(`SELECT title, id FROM role`, (err, result) => {
+        if (err) {
+          console.log(err);
         }
-      )
-    );
+        const role = result.map(({ title, id }) => ({
+          name: title,
+          value: id,
+        }));
+        inquirer
+          .prompt([
+            {
+              type: "checkbox",
+              name: "employeeRole",
+              message: "What is the new employee's role?",
+              choices: role,
+            },
+          ])
+          .then((answer) => {
+            newEmployee.push(answer.employeeRole);
+            db.query(`SELECT * from employee`, (err, result) => {
+              if (err) {
+                console.log(err);
+              }
+              const manager = result.map(({ first_name, last_name, id }) => ({
+                name: first_name + " " + last_name,
+                value: id,
+              }));
+              inquirer
+                .prompt([
+                  {
+                    type: "checkbox",
+                    name: "employeeManager",
+                    message: "Who is the new employee's manager?",
+                    choices: manager,
+                  },
+                ])
+                .then((answer) => {
+                  newEmployee.push(answer.employeeManager);
+                  db.query(
+                    `INSERT into employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`,
+                    newEmployee,
+                    (err, result) => {
+                      if (err) {
+                        console.log(err);
+                      }
+                      console.log("Successfully added new employee!");
+                      viewEmployees();
+                    }
+                  );
+                });
+            });
+          });
+      });
+    });
 }
 
 function updateEmployee() {
-  //select employee to edit from a list of employees
-  //select role from a list?
-  //UPDATE employee
-  //SET role_id = x
-  //WHERE first_name = y and last_name = z
+  db.query(`SELECT * FROM employee`, (err, result) => {
+    if (err) {
+      console.log(err);
+    }
+    const employees = result.map(({ first_name, last_name, id }) => ({
+      name: first_name + " " + last_name,
+      value: id,
+    }));
+    inquirer
+      .prompt([
+        {
+          type: "checkbox",
+          name: "employeeName",
+          message: "Which employee would you like to update?",
+          choices: employees,
+        },
+      ])
+      .then((answer) => {
+        const updateEmployee = [answer.employeeName];
+        db.query(`SELECT * FROM role`, (err, result) => {
+          const roles = result.map(({ title, id }) => ({
+            name: title,
+            value: id,
+          }));
+          inquirer
+            .prompt([
+              {
+                type: "checkbox",
+                name: "newRole",
+                message: "What is their new role?",
+                choices: roles,
+              },
+            ])
+            .then((answer) => {
+              updateEmployee.push(answer.newRole);
+              console.log(updateEmployee);
+              db.query(
+                `UPDATE employee SET role_id=? WHERE id=?`,
+                [updateEmployee[1], updateEmployee[0]],
+                (err, result) => {
+                  if (err) {
+                    console.log(err);
+                  }
+                  console.log("Successfully updated employee role!");
+                  viewEmployees();
+                }
+              );
+              //employee ID, role ID
+            });
+        });
+      });
+    //select employee to edit from a list of employees
+    //select role from a list?
+    //UPDATE employee
+    //SET role_id = x
+    //WHERE first_name = y and last_name = z
+  });
 }
 
 function exitApp() {
