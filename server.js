@@ -1,41 +1,7 @@
-//NEED TO DO SEEDS
-
-// 1. INQUIRER PROMPTS
-// CHECKBOX-what would you like to do?
-//view all departments
-//view all roles
-//view all employees
-//add a department
-//add a role
-//add an employee
-//update an employee role
-
-//VIEW ALL DEPARTMENTS -> table with department names and IDs (use console.table?)
-
-//VIEW ALL ROLES -> table with job title, role id, the department that role belongs to, and the salary for that role
-
-//VIEW ALL EMPLOYEES -> employee ids, first names, last names, job titles, departments, salaries, and managers that the employees report to
-
-//ADD A DEPARTMENT -> enter department name, and it is added to database
-
-//ADD A ROLE -> enter the name, salary, and department for the role and that role is added to the database
-
-//ADD AN EMPLOYEE -> enter the first name, last name, role, and manager, and that employee is added to the database
-
-//UPDATE EMPLOYEE ROLE -> select an employee to update and their new role and this information is updated in the database
-// pick name and role from list?
-
+//IMPORTS
 const inquirer = require("inquirer");
-const express = require("express");
 const mysql = require("mysql2");
 const consoleTable = require("console.table");
-
-const PORT = process.env.PORT || 3001;
-const app = express();
-
-// Express middleware
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
 
 // Connect to database
 const db = mysql.createConnection(
@@ -45,11 +11,13 @@ const db = mysql.createConnection(
     user: "root",
     // MySQL password
     password: "P0ta55ium",
+    //database to use
     database: "company_db",
   },
   console.log(`Connected to the company_db database. Welcome!`)
 );
 
+//user asked to select an option here upon initialisation of app
 const askUser = () => {
   inquirer
     .prompt([
@@ -109,19 +77,24 @@ const askUser = () => {
     });
 };
 
+//function to view all departments
 function viewDepartments() {
   db.query("SELECT * FROM department", function (err, results) {
     if (err) {
       console.log(err);
     }
     console.log("Department information:");
+    //departments presented in a table
     console.table(results);
+    //user taken back to opening menu once table generated
     askUser();
   });
 }
 
+//function to view all roles
 function viewRoles() {
   db.query(
+    //role and department tables joined, extra IDs eliminated
     "SELECT role.id, role.title, role.salary, department.name AS department FROM role INNER JOIN department ON role.department_id = department.id",
     function (err, results) {
       if (err) {
@@ -134,8 +107,10 @@ function viewRoles() {
   );
 }
 
+//function to view all employees
 function viewEmployees() {
   db.query(
+    //multiple joins to combine department, role and employee tables
     `SELECT employee.id, 
                       employee.first_name, 
                       employee.last_name, 
@@ -158,6 +133,7 @@ function viewEmployees() {
   );
 }
 
+//function to add a new department
 function addDepartment() {
   inquirer
     .prompt([
@@ -183,6 +159,7 @@ function addDepartment() {
     });
 }
 
+//function to add a new role
 function addRole() {
   inquirer
     .prompt([
@@ -198,11 +175,13 @@ function addRole() {
       },
     ])
     .then((answers) => {
+      //save input from user in an array
       const newRole = [answers.roleName, answers.salary];
       db.query(`SELECT name, id FROM department`, (err, result) => {
         if (err) {
           console.log(err);
         }
+        //map info from department table into new array of objects
         const department = result.map(({ name, id }) => ({
           name: name,
           value: id,
@@ -217,6 +196,8 @@ function addRole() {
             },
           ])
           .then((answer) => {
+            //add department of new role to newRole array
+            //the values inserted into role will come from this array
             newRole.push(answer.roleDept);
             db.query(
               `INSERT into role (title, salary, department_id) VALUES (?, ?, ?)`,
@@ -226,6 +207,7 @@ function addRole() {
                   console.log(err);
                 }
                 console.log("Successfully added role!");
+                //viewRoles function called in order to see new role presented in table
                 viewRoles();
               }
             );
@@ -234,7 +216,9 @@ function addRole() {
     });
 }
 
+//function to add a new employee
 function addEmployee() {
+  //user manually inputs the new employee's first and last names
   inquirer
     .prompt([
       {
@@ -258,6 +242,7 @@ function addEmployee() {
           name: title,
           value: id,
         }));
+        //new role and manager are selected from a list by the user
         inquirer
           .prompt([
             {
@@ -287,6 +272,7 @@ function addEmployee() {
                   },
                 ])
                 .then((answer) => {
+                  //all info pushed to newEmployee array for use in constructing the new employee row
                   newEmployee.push(answer.employeeManager);
                   db.query(
                     `INSERT into employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`,
@@ -306,7 +292,9 @@ function addEmployee() {
     });
 }
 
+//function to update an existing employee
 function updateEmployee() {
+  //both employee and new role are picked from a list
   db.query(`SELECT * FROM employee`, (err, result) => {
     if (err) {
       console.log(err);
@@ -345,6 +333,7 @@ function updateEmployee() {
               console.log(updateEmployee);
               db.query(
                 `UPDATE employee SET role_id=? WHERE id=?`,
+                //data is saved in updateEmployee array as[employee ID, role ID] hence syntax below
                 [updateEmployee[1], updateEmployee[0]],
                 (err, result) => {
                   if (err) {
@@ -354,13 +343,13 @@ function updateEmployee() {
                   viewEmployees();
                 }
               );
-              //employee ID, role ID
             });
         });
       });
   });
 }
 
+//function to delete department
 function deleteDepartment() {
   db.query(`SELECT * FROM department`, (err, result) => {
     if (err) {
@@ -395,6 +384,7 @@ function deleteDepartment() {
   });
 }
 
+//function to delete role
 function deleteRole() {
   db.query(`SELECT * FROM role`, (err, result) => {
     if (err) {
@@ -429,6 +419,7 @@ function deleteRole() {
   });
 }
 
+//function to delete employee
 function deleteEmployee() {
   db.query(`SELECT * FROM employee`, (err, result) => {
     if (err) {
@@ -463,27 +454,14 @@ function deleteEmployee() {
   });
 }
 
+//function to exit application
 function exitApp() {
   db.end();
 }
 
+//function to initialise app
 function init() {
   askUser();
 }
 
 init();
-
-// Bonus
-// Fulfilling any of the following can add up to 20 points to your grade.
-//Note that the highest grade you can achieve is still 100:
-
-// Application allows users to update employee managers (2 points).
-
-// Application allows users to view employees by manager (2 points).
-
-// Application allows users to view employees by department (2 points).
-
-// Application allows users to delete departments, roles, and employees (2 points for each).
-
-// Application allows users to view the total utilized budget of a department—in other words, the combined salaries of all
-//employees in that department (8 points).
