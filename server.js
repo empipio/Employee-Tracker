@@ -65,6 +65,9 @@ const askUser = () => {
           "Add a role",
           "Add an employee",
           "Update an employee role",
+          "Delete a department",
+          "Delete a role",
+          "Delete an employee",
           "Exit the app",
         ],
       },
@@ -93,6 +96,15 @@ const askUser = () => {
       }
       if (answer.options == "Exit the app") {
         exitApp();
+      }
+      if (answer.options == "Delete a department") {
+        deleteDepartment();
+      }
+      if (answer.options == "Delete a role") {
+        deleteRole();
+      }
+      if (answer.options == "Delete an employee") {
+        deleteEmployee();
       }
     });
 };
@@ -346,11 +358,108 @@ function updateEmployee() {
             });
         });
       });
-    //select employee to edit from a list of employees
-    //select role from a list?
-    //UPDATE employee
-    //SET role_id = x
-    //WHERE first_name = y and last_name = z
+  });
+}
+
+function deleteDepartment() {
+  db.query(`SELECT * FROM department`, (err, result) => {
+    if (err) {
+      console.log(err);
+    }
+    const departments = result.map(({ name, id }) => ({
+      name: name,
+      value: id,
+    }));
+    inquirer
+      .prompt([
+        {
+          type: "checkbox",
+          name: "deleteDept",
+          message: "Which department would you like to delete?",
+          choices: departments,
+        },
+      ])
+      .then((answer) => {
+        db.query(
+          `DELETE FROM department WHERE id=?`,
+          answer.deleteDept,
+          (err, result) => {
+            if (err) {
+              console.log(err);
+            }
+            console.log("Successfully deleted department!");
+            viewDepartments();
+          }
+        );
+      });
+  });
+}
+
+function deleteRole() {
+  db.query(`SELECT * FROM role`, (err, result) => {
+    if (err) {
+      console.log(err);
+    }
+    const roles = result.map(({ title, id }) => ({
+      name: title,
+      value: id,
+    }));
+    inquirer
+      .prompt([
+        {
+          type: "checkbox",
+          name: "deleteRole",
+          message: "Which role would you like to delete?",
+          choices: roles,
+        },
+      ])
+      .then((answer) => {
+        db.query(
+          `DELETE FROM role WHERE id=?`,
+          answer.deleteRole,
+          (err, result) => {
+            if (err) {
+              console.log(err);
+            }
+            console.log("Successfully deleted role!");
+            viewRoles();
+          }
+        );
+      });
+  });
+}
+
+function deleteEmployee() {
+  db.query(`SELECT * FROM employee`, (err, result) => {
+    if (err) {
+      console.log(err);
+    }
+    const employees = result.map(({ first_name, last_name, id }) => ({
+      name: first_name + " " + last_name,
+      value: id,
+    }));
+    inquirer
+      .prompt([
+        {
+          type: "checkbox",
+          name: "deleteEmployee",
+          message: "Which employee would you like to delete?",
+          choices: employees,
+        },
+      ])
+      .then((answer) => {
+        db.query(
+          `DELETE FROM employee WHERE id=?`,
+          answer.deleteEmployee,
+          (err, result) => {
+            if (err) {
+              console.log(err);
+            }
+            console.log("Successfully deleted employee!");
+            viewEmployees();
+          }
+        );
+      });
   });
 }
 
