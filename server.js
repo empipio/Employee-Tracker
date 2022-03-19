@@ -62,9 +62,6 @@ const askUser = () => {
       if (answer.options == "Update an employee role") {
         updateEmployee();
       }
-      if (answer.options == "Exit the app") {
-        exitApp();
-      }
       if (answer.options == "Delete a department") {
         deleteDepartment();
       }
@@ -73,6 +70,9 @@ const askUser = () => {
       }
       if (answer.options == "Delete an employee") {
         deleteEmployee();
+      }
+      if (answer.options == "Exit the app") {
+        exitApp();
       }
     });
 };
@@ -181,7 +181,7 @@ function addRole() {
         if (err) {
           console.log(err);
         }
-        //map info from department table into new array of objects
+        //map info from department table into new array so that user can select department from a dynamic list
         const department = result.map(({ name, id }) => ({
           name: name,
           value: id,
@@ -238,6 +238,7 @@ function addEmployee() {
         if (err) {
           console.log(err);
         }
+        //data from role table mapped to new array so user can select role from a dynamic list
         const role = result.map(({ title, id }) => ({
           name: title,
           value: id,
