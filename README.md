@@ -32,4 +32,4 @@ THEN I am prompted to select an employee to update and their new role and this i
 
 ## Walkthrough Video
 
-The link to a walkthrough video of the application can be found here:
+The link to a walkthrough video of the application can be found here: https://youtu.be/itfhKPbxJ-M
